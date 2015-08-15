@@ -1,0 +1,73 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.akhikhl.gretty:gretty:+'
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'war'
+apply plugin: 'org.akhikhl.gretty'
+
+gretty {
+    port = 8080
+    contextPath = '/'
+    servletContainer = 'jetty9'
+}
+
+sourceCompatibility = '1.8'
+version = '1.0'
+
+task gruntTest(type: Exec) {
+    workingDir 'src/main/webapp/WEB-INF/app'
+    executable = 'grunt'
+    args = ['test']
+}
+
+ext {
+	springVersion = '4.2.0.RELEASE'
+	jacksonVersion = '2.6.1'
+	romeVersion = '1.5.1'
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+}
+
+configurations {
+    provided
+    compile.extendsFrom provided
+}
+
+dependencies {
+    // Logging
+    compile 'ch.qos.logback:logback-classic:1.+'
+
+	// Spring framework
+	compile 'org.springframework:spring-core:'+springVersion
+    compile 'org.springframework:spring-web:'+springVersion
+    compile 'org.springframework:spring-webmvc:'+springVersion
+
+    // Twitter integration
+	compile 'org.springframework.social:spring-social-twitter:1.1.0.RELEASE'
+
+	// JSON mapping
+	compile 'com.fasterxml.jackson.core:jackson-core:'+jacksonVersion
+	compile 'com.fasterxml.jackson.core:jackson-databind:'+jacksonVersion
+	compile 'com.fasterxml.jackson.core:jackson-annotations:'+jacksonVersion
+		
+	// Web container
+	provided 'javax.servlet:javax.servlet-api:3.1.0'
+    
+    			
+    // Declare the dependency for your favourite test framework you want to use in your tests.
+    // TestNG is also supported by the Gradle Test task. Just change the
+    // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
+    // 'test.useTestNG()' to your build script.
+    testCompile 'junit:junit:4.12' 
+}
+
+
