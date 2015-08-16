@@ -1,8 +1,13 @@
 package org.zezutom.wordcloud.service;
 
+import static org.springframework.web.servlet.mvc.method.annotation.SseEmitter.event;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -26,9 +31,14 @@ public class TwitterStreamService implements StreamListener {
 	private Stream stream;
 	
 	private List<SseEmitter> emitters;
+		
+	private Set<String> filters;
 	
 	@Autowired
 	private WordCounter wordCounter;
+	
+	@Autowired
+	private TweetHashtagExtractor hashTagExtractor;
 	
 	@Autowired
 	public TwitterStreamService(Twitter twitter) {
@@ -42,8 +52,10 @@ public class TwitterStreamService implements StreamListener {
 	// Monitors Twitter's status updates
 	@PostConstruct
 	public void start() {
-		stream = twitter.streamingOperations().sample(Arrays.asList(this));
 		emitters = new ArrayList<>();
+		filters = new HashSet<>();
+		filters.addAll(Arrays.asList("Android", "iPhone", "Nokia"));
+		stream = twitter.streamingOperations().filter(filtersToString(), Arrays.asList(this));		
 	}
 	
 	@PreDestroy
@@ -51,6 +63,15 @@ public class TwitterStreamService implements StreamListener {
 		if (stream != null) stream.close();
 		emitters.clear();
 		emitters = null;
+		filters.clear();
+		filters = null;
+	}
+	
+	public String filtersToString() {
+		StringBuilder sb = new StringBuilder();
+		filters.forEach(filter -> sb.append(filter).append(","));
+		sb.setLength(Math.max(sb.length() - 1, 0));
+		return sb.toString();
 	}
 	
 	@Override
@@ -69,10 +90,19 @@ public class TwitterStreamService implements StreamListener {
 	public void onTweet(Tweet tweet) {
 		System.out.println("tweet: " + tweet.getText());
 		emitters.forEach((emitter) -> {
-			try {
-				System.out.println("Notifying emitters..");
-				List<WordCount> wordCounts = wordCounter.countWords(tweet.getText().split("\\s"));
-				emitter.send(wordCounts);
+			try {				
+				String[] hashTags = hashTagExtractor.extract(tweet.getText());
+				
+				if (hashTags.length > 0) {
+					System.out.println("Notifying emitters..");
+					List<WordCount> wordCounts = wordCounter.countWords(hashTags);	
+					emitter.send(event()
+							.reconnectTime(3000)
+							.data(wordCounts));
+					//emitter.complete();
+					System.out.println("Emission completed!");
+				}
+
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

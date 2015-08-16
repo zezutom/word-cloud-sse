@@ -6,6 +6,7 @@
         "angular-route":    "1.4.3",
         "angular-sanitize": "1.4.3",
         "angular-mocks":    "1.4.3",
+        "ng-tags-input":	"3.0.0",
         "jquery":			"2.1.4",
         "angular-jqcloud":	"1.0.2",
         "underscore":       "1.8.3",
