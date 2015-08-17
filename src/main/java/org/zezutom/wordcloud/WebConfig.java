@@ -52,13 +52,11 @@ public class WebConfig extends WebMvcConfigurerAdapter {
 	public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
 		converters.add(new MappingJackson2HttpMessageConverter());
 		converters.add(new StringHttpMessageConverter());
-		//converters.add(new SSEventMessageConverter());
-		//super.configureMessageConverters(converters);
 	}	
 	
 	@Override
 	public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
-		configurer.setDefaultTimeout(30000);
+		configurer.setDefaultTimeout(3000);
 	}
 	@Bean
 	public Twitter twitter() {

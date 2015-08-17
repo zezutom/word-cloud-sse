@@ -6,10 +6,9 @@ import java.util.Arrays;
 
 import org.springframework.stereotype.Service;
 
-@Service
 public class TweetHashtagExtractor {
 
-	public String[] extract(String tweetText) {
+	public static String[] extract(String tweetText) {
 		return Arrays.asList(tweetText.split("\\s"))
 				.stream()
 				.filter(word -> word.startsWith("#"))
