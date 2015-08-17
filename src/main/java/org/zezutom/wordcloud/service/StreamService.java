@@ -30,7 +30,7 @@ public class StreamService {
 	
 	private BlockingQueue<WordCount> queue = new ArrayBlockingQueue<>(10);
 	
-	private Map<String, List<Stoppable>> workerMap = new ConcurrentHashMap<>();
+	private Map<String, List<Thread>> workerMap = new ConcurrentHashMap<>();
 	
 	private Set<String> subscriptions = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 	
@@ -38,10 +38,7 @@ public class StreamService {
 	
 	@Autowired
 	private Twitter twitter;
-	
-	@Autowired
-	private WordCounter wordCounter;
-	
+		
 	public synchronized String subscribe() {
 		String subId = UUID.randomUUID().toString();		
 		subscriptions.add(subId);
@@ -51,7 +48,7 @@ public class StreamService {
 	public boolean unsubscribe(String subId) {
 		if (isValid(subId) && workerMap.containsKey(subId)) {
 			synchronized(this) {
-				workerMap.get(subId).forEach(worker -> worker.stop());
+				workerMap.get(subId).forEach(worker -> worker.interrupt());
 				return workerMap.remove(subId) != null && subscriptions.remove(subId);
 			}			
 		} else {
@@ -62,17 +59,15 @@ public class StreamService {
 	public void listen(String subId, SseEmitter emitter) {
 		if (isValid(subId)) {
 			synchronized(this) {
-				Producer producer = new Producer(twitter, wordCounter, queue);
-				Consumer consumer = new Consumer(queue, emitter);
-				
-				List<Stoppable> workers = Arrays.asList(producer, consumer);
-				
-				List<Thread> subscription = workers
+				Producer producer = new Producer(twitter, queue);
+				Consumer consumer = new Consumer(emitter, queue);
+								
+				List<Thread> subscription = Arrays.asList(producer, consumer)
 											.stream()
-											.map(r -> new Thread(r))
+											.map(r -> new Thread(r, "Client: " + subId))
 											.collect(Collectors.toList());
 				subscription.forEach(t -> t.start());
-				workerMap.put(subId, workers);			
+				workerMap.put(subId, subscription);			
 			}			
 		}
 	}
@@ -142,7 +137,7 @@ public class StreamService {
 	@PreDestroy
 	public void stop() {
 		workerMap.entrySet().forEach(entry -> {
-			entry.getValue().forEach(worker -> worker.stop());
+			entry.getValue().forEach(worker -> worker.interrupt());
 		});
 	}
 	

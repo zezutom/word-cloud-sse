@@ -13,6 +13,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.social.config.annotation.EnableSocial;
 import org.springframework.social.twitter.api.Twitter;
 import org.springframework.social.twitter.api.impl.TwitterTemplate;
 import org.springframework.web.servlet.ViewResolver;
@@ -84,6 +85,5 @@ public class WebConfig extends WebMvcConfigurerAdapter {
 	@Bean
 	public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
 		return new PropertySourcesPlaceholderConfigurer();
-	}	
-	
+	}			
 }

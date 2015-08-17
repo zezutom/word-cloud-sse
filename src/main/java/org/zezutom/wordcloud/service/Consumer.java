@@ -4,30 +4,30 @@ import static org.springframework.web.servlet.mvc.method.annotation.SseEmitter.e
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.zezutom.wordcloud.domain.WordCount;
 
-public class Consumer implements Stoppable {
+public class Consumer implements Runnable {
 
+	private Logger logger = LoggerFactory.getLogger(Producer.class);
+	
 	private BlockingQueue<WordCount> queue;
 	
 	private SseEmitter emitter;
-		
-	private boolean keepRunning;
 	
-	public Consumer(BlockingQueue<WordCount> queue, SseEmitter emitter) {
-		this.queue = queue;
+	public Consumer(SseEmitter emitter, BlockingQueue<WordCount> queue) {		
 		this.emitter = emitter;
-		this.keepRunning = true;
+		this.queue = queue;
 	}
 
 	@Override
 	public void run() {
-		while(keepRunning && !queue.isEmpty()) {
+		while(!Thread.interrupted() && !queue.isEmpty()) {
 			try {
 				int i = 0;
 				List<WordCount> wordCounts = new ArrayList<>();
@@ -38,16 +38,12 @@ public class Consumer implements Stoppable {
 						.reconnectTime(3000)
 						.data(wordCounts));
 			} catch (IOException | InterruptedException e) {
-				// TODO Auto-generated catch block
-				// e.printStackTrace();
-				System.out.println("error occurred");
+				// Simply abort execution
+				break;
 			}			
 		}
+		// Close the connection once done
+		logger.info("Shutting down " + Thread.currentThread().getName());
+		if (emitter != null) emitter.complete();
 	}
-
-	@Override
-	public void stop() {
-		keepRunning = false;		
-	}
-
 }

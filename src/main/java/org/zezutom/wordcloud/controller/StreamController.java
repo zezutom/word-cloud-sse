@@ -27,6 +27,11 @@ public class StreamController {
 		return service.subscribe();
 	}
 	
+	@RequestMapping(value = "/unsubscribe/{subId}", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+	public @ResponseBody Boolean unsubscribe(@PathVariable("subId") String subId) {
+		return service.unsubscribe(subId);
+	}	
+	
 	@RequestMapping(value = "/words/{subId}", method = RequestMethod.GET, produces = "text/event-stream")
 	public ResponseEntity<SseEmitter> streamWords(@PathVariable("subId") String subId) {		
 		SseEmitter emitter = new SseEmitter();

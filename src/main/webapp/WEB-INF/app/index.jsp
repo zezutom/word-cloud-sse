@@ -9,6 +9,11 @@
 <body ng-app="app">
 	<div ng-controller="StreamController">
 		<jqcloud words="words" width="500" height="350" steps="10"></jqcloud>
+		<div>
+			<button ng-click="toggleSubscription()">
+				{{label}}
+			</button>
+		</div>
 	</div>
 	<form ng-submit="submit()" ng-controller="FilterController">
 		<tags-input ng-model="tags">
