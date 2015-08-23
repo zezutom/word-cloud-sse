@@ -75,6 +75,7 @@ task npmPackages(type: NpmTask, dependsOn: npmCacheConfig) {
     outputs.files file('node_modules')
 }
 
+
 task bowerInstall(type: NodeTask) {
 	description 'Invoke Bower to download, cache and install the packages'
 	workingDir webAppWorkDir
@@ -88,6 +89,26 @@ task bowerInstall(type: NodeTask) {
     dependsOn npmPackages
 }
 
+def loadFiles(String... files) {
+	files.collect({file -> fileTree(dir: webAppWorkDir+'/bower_components').matching{include '**/'+file}.singleFile})
+}
+
+task bowerCopyJS(type: Sync) {
+    from loadFiles('angular.min.js', 'ng-tags-input.min.js', 'jquery.min.js', 'jqcloud.min.js', 'angular-jqcloud.js')	
+    into 'build/assets/vendor/js'
+    dependsOn bowerInstall
+}
+
+task bowerCopyCSS(type: Sync) {
+    from loadFiles('jqcloud.min.css', 'ng-tags-input.min.css')	
+    into 'build/assets/vendor/css'
+    dependsOn bowerInstall
+}
+
+task bowerPackages() {
+	dependsOn bowerCopyJS, bowerCopyCSS
+}
+
 // TODO Grunt vs Gulp
 task gruntTest(type: Exec) {
 	description = 'Trigger js tests'
@@ -97,8 +118,8 @@ task gruntTest(type: Exec) {
 }
 
 // Ensure all assets are downloaded prior to compilation
-processResources.dependsOn bowerInstall
-assetCompile.dependsOn bowerInstall
+processResources.dependsOn bowerPackages
+assetCompile.dependsOn bowerPackages
 
 // Enhance the clean task to remove node_modules and bower_components directories
 clean.delete << file(webAppWorkDir+'/bower_components')
