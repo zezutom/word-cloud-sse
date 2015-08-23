@@ -29,7 +29,7 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 @ComponentScan(basePackages = {
 		"org.zezutom.wordcloud.controller", 
 		"org.zezutom.wordcloud.service"})
-@PropertySource({"file:///Users/tomas/twitter.properties"})
+@PropertySource({"file:///Users/tom/twitter.properties"})
 public class WebConfig extends WebMvcConfigurerAdapter {
 
 	@Value("${consumer.key}")

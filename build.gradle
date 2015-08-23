@@ -1,16 +1,46 @@
 buildscript {
     repositories {
         jcenter()
+        maven {
+      		url 'https://plugins.gradle.org/m2/'
+    	}
+    	mavenCentral()
     }
     dependencies {
         classpath 'org.akhikhl.gretty:gretty:+'
+        classpath 'com.moowork.gradle:gradle-node-plugin:0.10'
+        classpath 'com.bertramlabs.plugins:asset-pipeline-gradle:2.4.3'
     }
+}
+
+ext {
+	springVersion = '4.2.0.RELEASE'
+	jacksonVersion = '2.6.1'
+	romeVersion = '1.5.1'
+	webAppWorkDir = 'src/main/webapp/WEB-INF/app'
 }
 
 apply plugin: 'java'
 apply plugin: 'war'
-apply plugin: 'org.akhikhl.gretty'
 
+// Process static assets
+apply plugin: 'com.bertramlabs.asset-pipeline'
+assets {
+  minifyJs = true
+  minifyCss = true
+  enableSourceMaps = true
+  configOptions = [:]
+
+  minifyOptions = [
+    languageMode: 'ES5',
+    targetLanguage: 'ES5', //Can go from ES6 to ES5 for those bleeding edgers
+    optimizationLevel: 'SIMPLE',
+    angularPass: true // Can use @ngInject annotation for Angular Apps
+  ]
+}
+
+// A dev-mode web server
+apply plugin: 'org.akhikhl.gretty'
 gretty {
     port = 8080
     contextPath = '/'
@@ -19,24 +49,63 @@ gretty {
     servletContainer = 'jetty9'
 }
 
+// Installs nodejs and npm
+apply plugin: 'com.moowork.node'
+node {
+    version = '0.12.7'
+    npmVersion = '2.12.1'
+    download = true
+}
+
 sourceCompatibility = '1.8'
 version = '1.0'
 
+task npmCacheConfig(type: NpmTask) {
+    description = "Configure the NPM cache"
+    def npmCacheDir = "${gradle.getGradleUserHomeDir()}/caches/npm"
+    outputs.files file(npmCacheDir)
+    args = [ 'config', 'set', 'cache', npmCacheDir ]
+}
+
+task npmPackages(type: NpmTask, dependsOn: npmCacheConfig) {
+    description = 'Install npm dependencies'
+    workingDir webAppWorkDir
+    args = [ 'install' ]
+    inputs.files file('package.json')
+    outputs.files file('node_modules')
+}
+
+task bowerInstall(type: NodeTask) {
+	description 'Invoke Bower to download, cache and install the packages'
+	workingDir webAppWorkDir
+    script = file(webAppWorkDir+'/node_modules/bower/bin/bower')
+    args = ["--config.storage.cache=${gradle.getGradleUserHomeDir()}/caches/bower/cache",
+            "--config.storage.packages=${gradle.getGradleUserHomeDir()}/caches/bower/packages",
+            "--config.storage.registry=${gradle.getGradleUserHomeDir()}/caches/bower/registry",
+            'install']
+    inputs.files file('bower.json')
+    outputs.files file('bower_components')
+    dependsOn npmPackages
+}
+
+// TODO Grunt vs Gulp
 task gruntTest(type: Exec) {
-    workingDir 'src/main/webapp/WEB-INF/app'
+	description = 'Trigger js tests'
+    workingDir webAppWorkDir
     executable = 'grunt'
     args = ['test']
 }
 
-ext {
-	springVersion = '4.2.0.RELEASE'
-	jacksonVersion = '2.6.1'
-	romeVersion = '1.5.1'
-}
+// Ensure all assets are downloaded prior to compilation
+processResources.dependsOn bowerInstall
+assetCompile.dependsOn bowerInstall
+
+// Enhance the clean task to remove node_modules and bower_components directories
+clean.delete << file(webAppWorkDir+'/bower_components')
+clean.delete << file(webAppWorkDir+'/node_modules')
 
 repositories {
     jcenter()
-    mavenCentral()
 }
 
 configurations {
