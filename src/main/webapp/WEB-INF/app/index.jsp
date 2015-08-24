@@ -6,8 +6,8 @@
 <html>
 <head>
 	<title>Word Cloud powered by AngularJS and jQcloud</title>
-	<link rel="stylesheet" href="${context}/app/bower_components/jqcloud2/dist/jqcloud.min.css">
-	<link rel="stylesheet" type="text/css" href="${context}/app/bower_components/ng-tags-input/ng-tags-input.min.css">
+	<link rel="stylesheet" href="${context}/assets/css/vendor/jqcloud.min.css">
+	<link rel="stylesheet" type="text/css" href="${context}/assets/css/vendor/ng-tags-input.min.css">
 </head>
 <body ng-app="app">
 	<div ng-controller="StreamController">
@@ -23,11 +23,11 @@
 			<auto-complete source="filterTags($query)"></auto-complete>
 		</tags-input>
 	</form>
-	<script src="${context}/app/bower_components/angular/angular.min.js"></script>
-	<script src="${context}/app/bower_components/ng-tags-input/ng-tags-input.min.js"></script>		
-	<script src="${context}/app/bower_components/jquery/dist/jquery.min.js"></script>
-	<script src="${context}/app/bower_components/jqcloud2/dist/jqcloud.min.js"></script>	
-	<script src="${context}/app/bower_components/angular-jqcloud/angular-jqcloud.js"></script>
-    <script src="${context}/app/src/app.js"></script>
+	<script src="${context}/assets/js/vendor/angular.min.js"></script>
+	<script src="${context}/assets/js/vendor/ng-tags-input.min.js"></script>		
+	<script src="${context}/assets/js/vendor/jquery.min.js"></script>
+	<script src="${context}/assets/js/vendor/jqcloud.min.js"></script>	
+	<script src="${context}/assets/js/vendor/angular-jqcloud.js"></script>
+    <script src="${context}/assets/js/app.js"></script>
 </body>
 </html>

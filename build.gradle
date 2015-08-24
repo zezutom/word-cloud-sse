@@ -1,23 +1,22 @@
 buildscript {
-    repositories {
-        jcenter()
-        maven {
-      		url 'https://plugins.gradle.org/m2/'
-    	}
-    	mavenCentral()
-    }
-    dependencies {
-        classpath 'org.akhikhl.gretty:gretty:+'
-        classpath 'com.moowork.gradle:gradle-node-plugin:0.10'
-        classpath 'com.bertramlabs.plugins:asset-pipeline-gradle:2.4.3'
-    }
+  repositories {
+    jcenter()
+    maven {
+  		url 'https://plugins.gradle.org/m2/'
+	}
+	mavenCentral()
+  }
+  dependencies {
+    classpath 'org.akhikhl.gretty:gretty:+'
+    classpath 'com.moowork.gradle:gradle-node-plugin:0.10'
+    classpath 'com.bertramlabs.plugins:asset-pipeline-gradle:2.4.3'
+  }
 }
 
 ext {
-	springVersion = '4.2.0.RELEASE'
-	jacksonVersion = '2.6.1'
-	romeVersion = '1.5.1'
-	webAppWorkDir = 'src/main/webapp/WEB-INF/app'
+  springVersion = '4.2.0.RELEASE'
+  jacksonVersion = '2.6.1'
+  webAppWorkDir = 'src/main/webapp/WEB-INF/app'
 }
 
 apply plugin: 'java'
@@ -42,124 +41,133 @@ assets {
 // A dev-mode web server
 apply plugin: 'org.akhikhl.gretty'
 gretty {
-    port = 8080
-    contextPath = '/'
-    fastReload = (['baseDir' : 'src/main/webapp/WEB-INF', 'pattern':'app/*'])
-    inplaceMode = 'soft'
-    servletContainer = 'jetty9'
+  port = 8080
+  contextPath = '/'
+  fastReload = (['baseDir' : 'src/main/webapp/WEB-INF', 'pattern':'app/*'])
+  inplaceMode = 'soft'
+  servletContainer = 'jetty9'
 }
 
 // Installs nodejs and npm
 apply plugin: 'com.moowork.node'
 node {
-    version = '0.12.7'
-    npmVersion = '2.12.1'
-    download = true
+  version = '0.12.7'
+  npmVersion = '2.12.1'
+  download = true
 }
 
 sourceCompatibility = '1.8'
 version = '1.0'
 
 task npmCacheConfig(type: NpmTask) {
-    description = "Configure the NPM cache"
-    def npmCacheDir = "${gradle.getGradleUserHomeDir()}/caches/npm"
-    outputs.files file(npmCacheDir)
-    args = [ 'config', 'set', 'cache', npmCacheDir ]
+  description = "Configure the NPM cache"
+  def npmCacheDir = "${gradle.getGradleUserHomeDir()}/caches/npm"
+  outputs.files file(npmCacheDir)
+  args = [ 'config', 'set', 'cache', npmCacheDir ]
 }
 
 task npmPackages(type: NpmTask, dependsOn: npmCacheConfig) {
-    description = 'Install npm dependencies'
-    workingDir webAppWorkDir
-    args = [ 'install' ]
-    inputs.files file('package.json')
-    outputs.files file('node_modules')
+  description = 'Install npm dependencies. Please ensure Bower is one of them.'
+  workingDir webAppWorkDir
+  args = [ 'install' ]
+  inputs.files file('package.json')
+  outputs.files file('node_modules')
 }
-
 
 task bowerInstall(type: NodeTask) {
-	description 'Invoke Bower to download, cache and install the packages'
-	workingDir webAppWorkDir
-    script = file(webAppWorkDir+'/node_modules/bower/bin/bower')
-    args = ["--config.storage.cache=${gradle.getGradleUserHomeDir()}/caches/bower/cache",
-            "--config.storage.packages=${gradle.getGradleUserHomeDir()}/caches/bower/packages",
-            "--config.storage.registry=${gradle.getGradleUserHomeDir()}/caches/bower/registry",
-            'install']
-    inputs.files file('bower.json')
-    outputs.files file('bower_components')
-    dependsOn npmPackages
+  description 'Invoke Bower to download, cache and install the packages'
+  workingDir webAppWorkDir
+  script = file(webAppWorkDir+'/node_modules/bower/bin/bower')
+  args = ["--config.storage.cache=${gradle.getGradleUserHomeDir()}/caches/bower/cache",
+        "--config.storage.packages=${gradle.getGradleUserHomeDir()}/caches/bower/packages",
+        "--config.storage.registry=${gradle.getGradleUserHomeDir()}/caches/bower/registry",
+        'install']
+  inputs.files file('bower.json')
+  outputs.files file('bower_components')
+  dependsOn npmPackages
 }
 
+// Resolves the absolute path for each of the provided files
 def loadFiles(String... files) {
-	files.collect({file -> fileTree(dir: webAppWorkDir+'/bower_components').matching{include '**/'+file}.singleFile})
+  files.collect({file -> fileTree(dir: webAppWorkDir+'/bower_components').matching{include '**/'+file}.singleFile})
 }
 
-task bowerCopyJS(type: Sync) {
-    from loadFiles('angular.min.js', 'ng-tags-input.min.js', 'jquery.min.js', 'jqcloud.min.js', 'angular-jqcloud.js')	
-    into 'build/assets/vendor/js'
-    dependsOn bowerInstall
+task copyVendorJS(type: Sync) {
+  description 'Copies the relevant JS scripts into the built app'
+  from loadFiles('angular.min.js', 'ng-tags-input.min.js', 'jquery.min.js', 'jqcloud.min.js', 'angular-jqcloud.js')	
+  into webAppWorkDir+'/assets/js/vendor'
+  dependsOn bowerInstall
 }
 
-task bowerCopyCSS(type: Sync) {
-    from loadFiles('jqcloud.min.css', 'ng-tags-input.min.css')	
-    into 'build/assets/vendor/css'
-    dependsOn bowerInstall
+task copyVendorCSS(type: Sync) {
+  description 'Copies the relevant stylesheets into the built app'
+  from loadFiles('jqcloud.min.css', 'ng-tags-input.min.css')	
+  into webAppWorkDir+'/assets/css/vendor'
+  dependsOn bowerInstall
 }
 
-task bowerPackages() {
-	dependsOn bowerCopyJS, bowerCopyCSS
+task copyAssets(type: Sync) {
+  description 'Copies app JS scripts and stylesheets into the built app'
+  from webAppWorkDir+'/src/app.js'	
+  into webAppWorkDir+'/assets/js'
+  dependsOn bowerInstall
+}
+
+task packageAssets() {
+  description 'Provides the app with the required assets'
+  dependsOn copyVendorJS, copyVendorCSS, copyAssets
 }
 
 // TODO Grunt vs Gulp
 task gruntTest(type: Exec) {
-	description = 'Trigger js tests'
-    workingDir webAppWorkDir
-    executable = 'grunt'
-    args = ['test']
+  description = 'Trigger js tests'
+  workingDir webAppWorkDir
+  executable = 'grunt'
+  args = ['test']
 }
 
 // Ensure all assets are downloaded prior to compilation
-processResources.dependsOn bowerPackages
-assetCompile.dependsOn bowerPackages
+processResources.dependsOn packageAssets
+assetCompile.dependsOn packageAssets
 
 // Enhance the clean task to remove node_modules and bower_components directories
 clean.delete << file(webAppWorkDir+'/bower_components')
 clean.delete << file(webAppWorkDir+'/node_modules')
 
 repositories {
-    jcenter()
+  jcenter()
 }
 
 configurations {
-    provided
-    compile.extendsFrom provided
+  provided
+  compile.extendsFrom provided
 }
 
 dependencies {
-    // Logging
-    compile 'ch.qos.logback:logback-classic:1.+'
+  // Logging
+  compile 'ch.qos.logback:logback-classic:1.+'
 
-	// Spring framework
-	compile 'org.springframework:spring-core:'+springVersion
-    compile 'org.springframework:spring-web:'+springVersion
-    compile 'org.springframework:spring-webmvc:'+springVersion
+  // Spring framework
+  compile 'org.springframework:spring-core:'+springVersion
+  compile 'org.springframework:spring-web:'+springVersion
+  compile 'org.springframework:spring-webmvc:'+springVersion
 
-    // Twitter integration
-	compile 'org.springframework.social:spring-social-twitter:1.1.0.RELEASE'
+  // Twitter integration
+  compile 'org.springframework.social:spring-social-twitter:1.1.0.RELEASE'
 
-	// JSON mapping
-	compile 'com.fasterxml.jackson.core:jackson-core:'+jacksonVersion
-	compile 'com.fasterxml.jackson.core:jackson-databind:'+jacksonVersion
-	compile 'com.fasterxml.jackson.core:jackson-annotations:'+jacksonVersion
-		
-	// Web container
-	provided 'javax.servlet:javax.servlet-api:3.1.0'
-    
-    			
-    // Declare the dependency for your favourite test framework you want to use in your tests.
-    // TestNG is also supported by the Gradle Test task. Just change the
-    // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
-    // 'test.useTestNG()' to your build script.
-    testCompile 'junit:junit:4.12' 
+  // JSON mapping
+  compile 'com.fasterxml.jackson.core:jackson-core:'+jacksonVersion
+  compile 'com.fasterxml.jackson.core:jackson-databind:'+jacksonVersion
+  compile 'com.fasterxml.jackson.core:jackson-annotations:'+jacksonVersion
+	
+  // Web container
+  provided 'javax.servlet:javax.servlet-api:3.1.0'
+  		
+  // Declare the dependency for your favourite test framework you want to use in your tests.
+  // TestNG is also supported by the Gradle Test task. Just change the
+  // testCompile dependency to testCompile 'org.testng:testng:6.8.1' and add
+  // 'test.useTestNG()' to your build script.
+  testCompile 'junit:junit:4.12' 
 }
 
 
